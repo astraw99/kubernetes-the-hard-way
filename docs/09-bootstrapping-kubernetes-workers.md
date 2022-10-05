@@ -31,7 +31,7 @@ keyUsage = nonRepudiation, digitalSignature, keyEncipherment
 subjectAltName = @alt_names
 [alt_names]
 DNS.1 = worker-1
-IP.1 = 192.168.5.21
+IP.1 = 192.168.56.21
 EOF
 
 openssl genrsa -out worker-1.key 2048
@@ -52,7 +52,7 @@ When generating kubeconfig files for Kubelets the client certificate matching th
 
 Get the kub-api server load-balancer IP.
 ```
-LOADBALANCER_ADDRESS=192.168.5.30
+LOADBALANCER_ADDRESS=192.168.56.30
 ```
 
 Generate a kubeconfig file for the first worker node.
@@ -99,25 +99,16 @@ Going forward all activities are to be done on the `worker-1` node.
 
 On worker-1:
 ```
-worker-1$ wget -q --show-progress --https-only --timestamping \
-  https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kubectl \
-  https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kube-proxy \
-  https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kubelet
+KUBE_BIN_VERSION=v1.25.0
+
+wget -q --show-progress --https-only --timestamping \
+  https://storage.googleapis.com/kubernetes-release/release/${KUBE_BIN_VERSION}/bin/linux/amd64/kubectl \
+  https://storage.googleapis.com/kubernetes-release/release/${KUBE_BIN_VERSION}/bin/linux/amd64/kube-proxy \
+  https://storage.googleapis.com/kubernetes-release/release/${KUBE_BIN_VERSION}/bin/linux/amd64/kubelet
 ```
 
 Reference: https://kubernetes.io/docs/setup/release/#node-binaries
 
-Create the installation directories:
-
-```
-worker-1$ sudo mkdir -p \
-  /etc/cni/net.d \
-  /opt/cni/bin \
-  /var/lib/kubelet \
-  /var/lib/kube-proxy \
-  /var/lib/kubernetes \
-  /var/run/kubernetes
-```
 
 Install the worker binaries:
 
@@ -129,7 +120,21 @@ Install the worker binaries:
 ```
 
 ### Configure the Kubelet
+
 On worker-1:
+
+Create the installation directories:
+
+```
+sudo mkdir -p \
+  /etc/cni/net.d \
+  /opt/cni/bin \
+  /var/lib/kubelet \
+  /var/lib/kube-proxy \
+  /var/lib/kubernetes \
+  /var/run/kubernetes
+```
+
 ```
 {
   sudo mv ${HOSTNAME}.key ${HOSTNAME}.crt /var/lib/kubelet/
@@ -141,7 +146,7 @@ On worker-1:
 Create the `kubelet-config.yaml` configuration file:
 
 ```
-worker-1$ cat <<EOF | sudo tee /var/lib/kubelet/kubelet-config.yaml
+cat <<EOF | sudo tee /var/lib/kubelet/kubelet-config.yaml
 kind: KubeletConfiguration
 apiVersion: kubelet.config.k8s.io/v1beta1
 authentication:
@@ -166,7 +171,7 @@ EOF
 Create the `kubelet.service` systemd unit file:
 
 ```
-worker-1$ cat <<EOF | sudo tee /etc/systemd/system/kubelet.service
+cat <<EOF | sudo tee /etc/systemd/system/kubelet.service
 [Unit]
 Description=Kubernetes Kubelet
 Documentation=https://github.com/kubernetes/kubernetes
@@ -176,11 +181,10 @@ Requires=docker.service
 [Service]
 ExecStart=/usr/local/bin/kubelet \\
   --config=/var/lib/kubelet/kubelet-config.yaml \\
-  --image-pull-progress-deadline=2m \\
   --kubeconfig=/var/lib/kubelet/kubeconfig \\
   --tls-cert-file=/var/lib/kubelet/${HOSTNAME}.crt \\
   --tls-private-key-file=/var/lib/kubelet/${HOSTNAME}.key \\
-  --network-plugin=cni \\
+  --container-runtime-endpoint=unix:///run/containerd/containerd.sock \\
   --register-node=true \\
   --v=2
 Restart=on-failure
@@ -194,26 +198,26 @@ EOF
 ### Configure the Kubernetes Proxy
 On worker-1:
 ```
-worker-1$ sudo mv kube-proxy.kubeconfig /var/lib/kube-proxy/kubeconfig
+sudo mv kube-proxy.kubeconfig /var/lib/kube-proxy/kubeconfig
 ```
 
 Create the `kube-proxy-config.yaml` configuration file:
 
 ```
-worker-1$ cat <<EOF | sudo tee /var/lib/kube-proxy/kube-proxy-config.yaml
+cat <<EOF | sudo tee /var/lib/kube-proxy/kube-proxy-config.yaml
 kind: KubeProxyConfiguration
 apiVersion: kubeproxy.config.k8s.io/v1alpha1
 clientConnection:
   kubeconfig: "/var/lib/kube-proxy/kubeconfig"
 mode: "iptables"
-clusterCIDR: "192.168.5.0/24"
+clusterCIDR: "192.168.56.0/24"
 EOF
 ```
 
 Create the `kube-proxy.service` systemd unit file:
 
 ```
-worker-1$ cat <<EOF | sudo tee /etc/systemd/system/kube-proxy.service
+cat <<EOF | sudo tee /etc/systemd/system/kube-proxy.service
 [Unit]
 Description=Kubernetes Kube Proxy
 Documentation=https://github.com/kubernetes/kubernetes
@@ -227,6 +231,13 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
+```
+
+### Install Containerd
+```
+sudo mkdir -p /etc/containerd
+containerd config default | sudo tee /etc/containerd/config.toml
+sudo systemctl restart containerd
 ```
 
 ### Start the Worker Services
@@ -254,7 +265,7 @@ master-1$ kubectl get nodes --kubeconfig admin.kubeconfig
 
 ```
 NAME       STATUS     ROLES    AGE   VERSION
-worker-1   NotReady   <none>   93s   v1.13.0
+worker-1   NotReady   <none>   93s   v1.25.0
 ```
 
 > Note: It is OK for the worker node to be in a NotReady state.

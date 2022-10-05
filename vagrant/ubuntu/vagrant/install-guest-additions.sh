@@ -1,5 +1,7 @@
 #!/bin/bash
-GUEST_ADDITION_VERSION=5.2.4
+
+# recommend to keep consistent with the VirtualBox version
+GUEST_ADDITION_VERSION=6.1.34
 GUEST_ADDITION_ISO=VBoxGuestAdditions_${GUEST_ADDITION_VERSION}.iso
 GUEST_ADDITION_MOUNT=/media/VBoxGuestAdditions
 

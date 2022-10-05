@@ -139,7 +139,7 @@ The kube-apiserver certificate requires all names that various components may re
 The `openssl` command cannot take alternate names as command line parameter. So we must create a `conf` file for it:
 
 ```
-cat > openssl.cnf <<EOF
+cat > openssl-apiserver.cnf <<EOF
 [req]
 req_extensions = v3_req
 distinguished_name = req_distinguished_name
@@ -154,19 +154,22 @@ DNS.2 = kubernetes.default
 DNS.3 = kubernetes.default.svc
 DNS.4 = kubernetes.default.svc.cluster.local
 IP.1 = 10.96.0.1
-IP.2 = 192.168.5.11
-IP.3 = 192.168.5.12
-IP.4 = 192.168.5.30
-IP.5 = 127.0.0.1
+IP.2 = 192.168.56.11
+IP.3 = 192.168.56.12
+IP.4 = 192.168.56.13
+IP.5 = 192.168.56.30
+IP.6 = 127.0.0.1
 EOF
 ```
+
+> 10.96.0.1 is the kube-api service ClusterIP.
 
 Generates certs for kube-apiserver
 
 ```
 openssl genrsa -out kube-apiserver.key 2048
-openssl req -new -key kube-apiserver.key -subj "/CN=kube-apiserver" -out kube-apiserver.csr -config openssl.cnf
-openssl x509 -req -in kube-apiserver.csr -CA ca.crt -CAkey ca.key -CAcreateserial  -out kube-apiserver.crt -extensions v3_req -extfile openssl.cnf -days 1000
+openssl req -new -key kube-apiserver.key -subj "/CN=kube-apiserver" -out kube-apiserver.csr -config openssl-apiserver.cnf
+openssl x509 -req -in kube-apiserver.csr -CA ca.crt -CAkey ca.key -CAcreateserial  -out kube-apiserver.crt -extensions v3_req -extfile openssl-apiserver.cnf -days 1000
 ```
 
 Results:
@@ -178,7 +181,7 @@ kube-apiserver.key
 
 ### The ETCD Server Certificate
 
-Similarly ETCD server certificate must have addresses of all the servers part of the ETCD cluster
+Similarly, ETCD server certificate must have addresses of all the servers part of the ETCD cluster
 
 The `openssl` command cannot take alternate names as command line parameter. So we must create a `conf` file for it:
 
@@ -193,9 +196,10 @@ basicConstraints = CA:FALSE
 keyUsage = nonRepudiation, digitalSignature, keyEncipherment
 subjectAltName = @alt_names
 [alt_names]
-IP.1 = 192.168.5.11
-IP.2 = 192.168.5.12
-IP.3 = 127.0.0.1
+IP.1 = 192.168.56.11
+IP.2 = 192.168.56.12
+IP.3 = 192.168.56.13
+IP.4 = 127.0.0.1
 EOF
 ```
 
@@ -239,13 +243,15 @@ service-account.crt
 Copy the appropriate certificates and private keys to each controller instance:
 
 ```
-for instance in master-1 master-2; do
+for instance in master-1 master-2 master-3; do
   scp ca.crt ca.key kube-apiserver.key kube-apiserver.crt \
     service-account.key service-account.crt \
     etcd-server.key etcd-server.crt \
     ${instance}:~/
 done
 ```
+
+> If creating the certs on master-1, then just omit it in the for loop.
 
 > The `kube-proxy`, `kube-controller-manager`, `kube-scheduler`, and `kubelet` client certificates will be used to generate client authentication configuration files in the next lab. These certificates will be embedded into the client authentication configuration files. We will then copy those configuration files to the other master nodes.
 

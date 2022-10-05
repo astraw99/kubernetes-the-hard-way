@@ -23,11 +23,13 @@ sudo mkdir -p /etc/kubernetes/config
 Download the official Kubernetes release binaries:
 
 ```
+KUBE_BIN_VERSION=v1.25.0
+
 wget -q --show-progress --https-only --timestamping \
-  "https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kube-apiserver" \
-  "https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kube-controller-manager" \
-  "https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kube-scheduler" \
-  "https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kubectl"
+  "https://storage.googleapis.com/kubernetes-release/release/${KUBE_BIN_VERSION}/bin/linux/amd64/kube-apiserver" \
+  "https://storage.googleapis.com/kubernetes-release/release/${KUBE_BIN_VERSION}/bin/linux/amd64/kube-controller-manager" \
+  "https://storage.googleapis.com/kubernetes-release/release/${KUBE_BIN_VERSION}/bin/linux/amd64/kube-scheduler" \
+  "https://storage.googleapis.com/kubernetes-release/release/${KUBE_BIN_VERSION}/bin/linux/amd64/kubectl"
 ```
 
 Reference: https://kubernetes.io/docs/setup/release/#server-binaries
@@ -78,7 +80,6 @@ Documentation=https://github.com/kubernetes/kubernetes
 ExecStart=/usr/local/bin/kube-apiserver \\
   --advertise-address=${INTERNAL_IP} \\
   --allow-privileged=true \\
-  --apiserver-count=2 \\
   --audit-log-maxage=30 \\
   --audit-log-maxbackup=3 \\
   --audit-log-maxsize=100 \\
@@ -87,20 +88,20 @@ ExecStart=/usr/local/bin/kube-apiserver \\
   --bind-address=0.0.0.0 \\
   --client-ca-file=/var/lib/kubernetes/ca.crt \\
   --enable-admission-plugins=NodeRestriction,ServiceAccount \\
-  --enable-swagger-ui=true \\
   --enable-bootstrap-token-auth=true \\
   --etcd-cafile=/var/lib/kubernetes/ca.crt \\
   --etcd-certfile=/var/lib/kubernetes/etcd-server.crt \\
   --etcd-keyfile=/var/lib/kubernetes/etcd-server.key \\
-  --etcd-servers=https://192.168.5.11:2379,https://192.168.5.12:2379 \\
+  --etcd-servers=https://192.168.56.11:2379,https://192.168.56.12:2379,https://192.168.56.13:2379 \\
   --event-ttl=1h \\
   --encryption-provider-config=/var/lib/kubernetes/encryption-config.yaml \\
   --kubelet-certificate-authority=/var/lib/kubernetes/ca.crt \\
   --kubelet-client-certificate=/var/lib/kubernetes/kube-apiserver.crt \\
   --kubelet-client-key=/var/lib/kubernetes/kube-apiserver.key \\
-  --kubelet-https=true \\
   --runtime-config=api/all=true \\
+  --service-account-issuer=https://kubernetes.default.svc.cluster.local \\
   --service-account-key-file=/var/lib/kubernetes/service-account.crt \\
+  --service-account-signing-key-file=/var/lib/kubernetes/service-account.key \\
   --service-cluster-ip-range=10.96.0.0/24 \\
   --service-node-port-range=30000-32767 \\
   --tls-cert-file=/var/lib/kubernetes/kube-apiserver.crt \\
@@ -132,8 +133,8 @@ Documentation=https://github.com/kubernetes/kubernetes
 
 [Service]
 ExecStart=/usr/local/bin/kube-controller-manager \\
-  --address=0.0.0.0 \\
-  --cluster-cidr=192.168.5.0/24 \\
+  --bind-address=0.0.0.0 \\
+  --cluster-cidr=192.168.56.0/24 \\
   --cluster-name=kubernetes \\
   --cluster-signing-cert-file=/var/lib/kubernetes/ca.crt \\
   --cluster-signing-key-file=/var/lib/kubernetes/ca.key \\
@@ -171,7 +172,7 @@ Documentation=https://github.com/kubernetes/kubernetes
 [Service]
 ExecStart=/usr/local/bin/kube-scheduler \\
   --kubeconfig=/var/lib/kubernetes/kube-scheduler.kubeconfig \\
-  --address=127.0.0.1 \\
+  --bind-address=127.0.0.1 \\
   --leader-elect=true \\
   --v=2
 Restart=on-failure
@@ -207,6 +208,7 @@ controller-manager   Healthy   ok
 scheduler            Healthy   ok
 etcd-0               Healthy   {"health": "true"}
 etcd-1               Healthy   {"health": "true"}
+etcd-2               Healthy   {"health": "true"}
 ```
 
 > Remember to run the above commands on each controller node: `master-1`, and `master-2`.
@@ -227,7 +229,7 @@ sudo apt-get update && sudo apt-get install -y haproxy
 ```
 cat <<EOF | sudo tee /etc/haproxy/haproxy.cfg 
 frontend kubernetes
-    bind 192.168.5.30:6443
+    bind 192.168.56.30:6443
     option tcplog
     mode tcp
     default_backend kubernetes-master-nodes
@@ -236,8 +238,9 @@ backend kubernetes-master-nodes
     mode tcp
     balance roundrobin
     option tcp-check
-    server master-1 192.168.5.11:6443 check fall 3 rise 2
-    server master-2 192.168.5.12:6443 check fall 3 rise 2
+    server master-1 192.168.56.11:6443 check fall 3 rise 2
+    server master-2 192.168.56.12:6443 check fall 3 rise 2
+    server master-3 192.168.56.13:6443 check fall 3 rise 2
 EOF
 ```
 
@@ -250,7 +253,7 @@ sudo service haproxy restart
 Make a HTTP request for the Kubernetes version info:
 
 ```
-curl  https://192.168.5.30:6443/version -k
+curl  https://192.168.56.30:6443/version -k
 ```
 
 > output
@@ -259,7 +262,7 @@ curl  https://192.168.5.30:6443/version -k
 {
   "major": "1",
   "minor": "13",
-  "gitVersion": "v1.13.0",
+  "gitVersion": "v1.25.0",
   "gitCommit": "ddf47ac13c1a9483ea035a79cd7c10005ff21a6d",
   "gitTreeState": "clean",
   "buildDate": "2018-12-03T20:56:12Z",

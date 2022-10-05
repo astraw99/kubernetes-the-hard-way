@@ -6,11 +6,14 @@ We chose to use CNI - [weave](https://www.weave.works/docs/net/latest/kubernetes
 
 Download the CNI Plugins required for weave on each of the worker nodes - `worker-1` and `worker-2`
 
-`wget https://github.com/containernetworking/plugins/releases/download/v0.7.5/cni-plugins-amd64-v0.7.5.tgz`
+`wget https://github.com/containernetworking/plugins/releases/download/v1.1.1/cni-plugins-linux-amd64-v1.1.1.tgz`
 
 Extract it to /opt/cni/bin directory
 
-`sudo tar -xzvf cni-plugins-amd64-v0.7.5.tgz  --directory /opt/cni/bin/`
+```
+sudo mkdir -p /opt/cni/bin
+sudo tar -xzvf cni-plugins-linux-amd64-v1.1.1.tgz  --directory /opt/cni/bin/
+```
 
 Reference: https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/#cni
 
@@ -37,6 +40,14 @@ master-1$ kubectl get pods -n kube-system
 NAME              READY   STATUS    RESTARTS   AGE
 weave-net-58j2j   2/2     Running   0          89s
 weave-net-rr5dk   2/2     Running   0          89s
+```
+
+```
+kubectl get no
+
+NAME       STATUS   ROLES    AGE    VERSION
+worker-1   Ready    <none>   25h    v1.25.0
+worker-2   Ready    <none>   100m   v1.25.0
 ```
 
 Reference: https://kubernetes.io/docs/tasks/administer-cluster/network-policy-provider/weave-network-policy/#install-the-weave-net-addon

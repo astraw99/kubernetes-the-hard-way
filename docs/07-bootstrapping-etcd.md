@@ -1,6 +1,6 @@
 # Bootstrapping the etcd Cluster
 
-Kubernetes components are stateless and store cluster state in [etcd](https://github.com/coreos/etcd). In this lab you will bootstrap a two node etcd cluster and configure it for high availability and secure remote access.
+Kubernetes components are stateless and store cluster state in [etcd](https://github.com/etcd-io/etcd). In this lab you will bootstrap a 3 node etcd cluster and configure it for high availability and secure remote access.
 
 ## Prerequisites
 
@@ -14,19 +14,21 @@ The commands in this lab must be run on each controller instance: `master-1`, an
 
 ### Download and Install the etcd Binaries
 
-Download the official etcd release binaries from the [coreos/etcd](https://github.com/coreos/etcd) GitHub project:
+Download the official etcd release binaries from the [etcd-io/etcd](https://github.com/etcd-io/etcd) GitHub project:
 
 ```
+# recommend to the latest version
+ETCD_VER=v3.4.20
 wget -q --show-progress --https-only --timestamping \
-  "https://github.com/coreos/etcd/releases/download/v3.3.9/etcd-v3.3.9-linux-amd64.tar.gz"
+  "https://github.com/etcd-io/etcd/releases/download/${ETCD_VER}/etcd-${ETCD_VER}-linux-amd64.tar.gz"
 ```
 
 Extract and install the `etcd` server and the `etcdctl` command line utility:
 
 ```
 {
-  tar -xvf etcd-v3.3.9-linux-amd64.tar.gz
-  sudo mv etcd-v3.3.9-linux-amd64/etcd* /usr/local/bin/
+  tar -zxvf etcd-${ETCD_VER}-linux-amd64.tar.gz
+  sudo cp etcd-${ETCD_VER}-linux-amd64/etcd* /usr/local/bin/
 }
 ```
 
@@ -75,7 +77,7 @@ ExecStart=/usr/local/bin/etcd \\
   --listen-client-urls https://${INTERNAL_IP}:2379,https://127.0.0.1:2379 \\
   --advertise-client-urls https://${INTERNAL_IP}:2379 \\
   --initial-cluster-token etcd-cluster-0 \\
-  --initial-cluster master-1=https://192.168.5.11:2380,master-2=https://192.168.5.12:2380 \\
+  --initial-cluster master-1=https://192.168.56.11:2380,master-2=https://192.168.56.12:2380,master-3=https://192.168.56.13:2380 \\
   --initial-cluster-state new \\
   --data-dir=/var/lib/etcd
 Restart=on-failure
@@ -96,25 +98,31 @@ EOF
 }
 ```
 
-> Remember to run the above commands on each controller node: `master-1`, and `master-2`.
+> Remember to run the above commands on each controller node: `master-1`, `master-2` and `master-3`.
 
 ## Verification
 
 List the etcd cluster members:
 
 ```
-sudo ETCDCTL_API=3 etcdctl member list \
-  --endpoints=https://127.0.0.1:2379 \
+sudo ETCDCTL_API=3 etcdctl endpoint health \
+  --endpoints=https://192.168.56.11:2379,https://192.168.56.12:2379,https://192.168.56.13:2379 \
   --cacert=/etc/etcd/ca.crt \
   --cert=/etc/etcd/etcd-server.crt \
-  --key=/etc/etcd/etcd-server.key
+  --key=/etc/etcd/etcd-server.key \
+  --write-out=table
 ```
 
 > output
 
 ```
-45bf9ccad8d8900a, started, master-2, https://192.168.5.12:2380, https://192.168.5.12:2379
-54a5796a6803f252, started, master-1, https://192.168.5.11:2380, https://192.168.5.11:2379
++----------------------------+--------+-------------+-------+
+|          ENDPOINT          | HEALTH |    TOOK     | ERROR |
++----------------------------+--------+-------------+-------+
+| https://192.168.56.11:2379 |   true | 19.020094ms |       |
+| https://192.168.56.13:2379 |   true | 21.171837ms |       |
+| https://192.168.56.12:2379 |   true | 25.935113ms |       |
++----------------------------+--------+-------------+-------+
 ```
 
 Reference: https://kubernetes.io/docs/tasks/administer-cluster/configure-upgrade-etcd/#starting-etcd-clusters
