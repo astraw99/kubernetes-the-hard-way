@@ -23,12 +23,13 @@ The target audience for this tutorial is someone planning to support a productio
 
 Kubernetes The Hard Way guides you through bootstrapping a highly available Kubernetes cluster with end-to-end encryption between components and RBAC authentication.
 
-* [Kubernetes](https://github.com/kubernetes/kubernetes) 1.13.0
-* [Docker Container Runtime](https://github.com/containerd/containerd) 18.06
-* [CNI Container Networking](https://github.com/containernetworking/cni) 0.7.5
-* [Weave Networking](https://www.weave.works/docs/net/latest/kubernetes/kube-addon/)
-* [etcd](https://github.com/coreos/etcd) v3.3.9
-* [CoreDNS](https://github.com/coredns/coredns) v1.2.2
+* [Kubernetes](https://github.com/kubernetes/kubernetes) v1.25.0
+* [CRI - containerd](https://github.com/containerd/containerd) v1.6.8
+* [CRI - runc](https://github.com/opencontainers/runc) v1.1.4
+* [CNI Container Networking](https://github.com/containernetworking/cni) v1.1.1
+* [CNI - Weave Net](https://www.weave.works/docs/net/latest/kubernetes/kube-addon/) v2.8.1
+* [etcd](https://github.com/etcd-io/etcd) v3.5.5
+* [CoreDNS](https://github.com/coredns/coredns) v1.9.4
 
 ## Labs
 
@@ -39,7 +40,7 @@ Kubernetes The Hard Way guides you through bootstrapping a highly available Kube
 * [Generating Kubernetes Configuration Files for Authentication](docs/05-kubernetes-configuration-files.md)
 * [Generating the Data Encryption Config and Key](docs/06-data-encryption-keys.md)
 * [Bootstrapping the etcd Cluster](docs/07-bootstrapping-etcd.md)
-* [Bootstrapping the Kubernetes Control Plane](docs/08-bootstrapping-kubernetes-controllers.md)
+* [Bootstrapping the Kubernetes Control Plane](docs/08-bootstrapping-kubernetes-masters.md)
 * [Bootstrapping the Kubernetes Worker Nodes](docs/09-bootstrapping-kubernetes-workers.md)
 * [TLS Bootstrapping the Kubernetes Worker Nodes](docs/10-tls-bootstrapping-kubernetes-workers.md)
 * [Configuring kubectl for Remote Access](docs/11-configuring-kubectl.md)

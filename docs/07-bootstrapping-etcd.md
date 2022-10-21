@@ -18,7 +18,7 @@ Download the official etcd release binaries from the [etcd-io/etcd](https://gith
 
 ```
 # recommend to the latest version
-ETCD_VER=v3.4.20
+ETCD_VER=v3.5.5
 wget -q --show-progress --https-only --timestamping \
   "https://github.com/etcd-io/etcd/releases/download/${ETCD_VER}/etcd-${ETCD_VER}-linux-amd64.tar.gz"
 ```

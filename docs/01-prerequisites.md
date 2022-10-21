@@ -16,7 +16,7 @@ Download and Install [VirtualBox](https://www.virtualbox.org/wiki/Downloads) on 
 
 ## Vagrant
 
-Once VirtualBox is installed you may chose to deploy virtual machines manually on it.
+Once VirtualBox is installed you may choose to deploy virtual machines manually on it.
 Vagrant provides an easier way to deploy multiple virtual machines on VirtualBox more consistenlty.
 
 Download and Install [Vagrant](https://www.vagrantup.com/) on your platform.
